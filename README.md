@@ -1,4 +1,4 @@
-# 🚀 LangGraph Multi-Agent Project Planner
+# 🚀 LangGraph Multi-Agent Project Manager
 
 Welcome to the **next generation of intelligent project automation** — a powerful agentic system that turns vague ideas into detailed, actionable plans. Whether you're building a flat, launching a startup, or mapping out a complex project, this system transforms raw intent into structured reports—with cost, time, and market insights—**in seconds**.
 
@@ -8,7 +8,7 @@ It’s your **project co-pilot** — asking the right questions, thinking throug
 ---
 ![project_graph](images/project_graph.png)
 ---
-## ✨ Why This Project Stands Out
+## ✨ Why Project Manager ?
 
 - **Agentic Intelligence**  
   At its core is a sophisticated LangGraph-powered architecture where each agent plays a distinct role. The system is not linear—it’s dynamic. Agents communicate, delegate, and converge asynchronously, mimicking the decision-making process of real teams.
