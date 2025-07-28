@@ -60,7 +60,7 @@ class ProjectManager(StateGraph):
             "market_study_agent", self.market_study_agent_node
         )
         build_project_manager.add_node("chat", self.chat_node)
-        build_project_manager.add_mode("interrupt", self.human_in_the_loop)
+        build_project_manager.add_node("interrupt", self.human_in_the_loop)
 
         build_project_manager.add_conditional_edges(
             "main_agent",
@@ -161,7 +161,7 @@ class ProjectManager(StateGraph):
             "retrieved_content": output.get("retrieved_content", []),
         }
 
-    def chat_node(self, state: states.ChatState):
+    def chat_node(self, state: states.MainState):
         messages = [
             SystemMessage(content=prompts.CHAT_PROMPT),
             HumanMessage(

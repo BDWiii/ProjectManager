@@ -26,10 +26,10 @@ class ReportAgent:
 
         build_report = StateGraph(states.ReportState)
 
-        build_report.add_node("report", self.report_node)
+        build_report.add_node("reporter", self.report_node)
 
-        build_report.set_entry_point("report")
-        build_report.add_edge("report", END)
+        build_report.set_entry_point("reporter")
+        build_report.add_edge("reporter", END)
 
         self.report_agent = build_report.compile()
 

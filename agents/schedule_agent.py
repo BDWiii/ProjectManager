@@ -30,10 +30,10 @@ class ScheduleAgent:
 
         build_schedule = StateGraph(states.ScheduleState)
 
-        build_schedule.add_node("schedule", self.schedule_node)
+        build_schedule.add_node("scheduler", self.schedule_node)
 
-        build_schedule.set_entry_point("schedule")
-        build_schedule.add_edge("schedule", END)
+        build_schedule.set_entry_point("scheduler")
+        build_schedule.add_edge("scheduler", END)
 
         self.schedule_agent = build_schedule.compile()
 

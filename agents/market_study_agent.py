@@ -32,11 +32,11 @@ class MarketStudyAgent:
         build_market_study = StateGraph(states.MarketStudyState)
 
         build_market_study.add_node("search", self.search_node)
-        build_market_study.add_node("market_study", self.market_study_node)
+        build_market_study.add_node("market_studier", self.market_study_node)
 
         build_market_study.set_entry_point("search")
-        build_market_study.add_edge("search", "market_study")
-        build_market_study.add_edge("market_study", END)
+        build_market_study.add_edge("search", "market_studier")
+        build_market_study.add_edge("market_studier", END)
 
         self.market_study_agent = build_market_study.compile()
 
@@ -74,7 +74,7 @@ class MarketStudyAgent:
         response = self.llm.invoke(messages)
 
         return {
-            "node_name": "market_study",
+            "node_name": "market_studier",
             "market_study": response.content,
             "task": state.get("task", ""),
         }

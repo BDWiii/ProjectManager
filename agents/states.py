@@ -74,9 +74,12 @@ class MainState(TypedDict):
 
 
 # ==================== Initialization ====================
-def _initialize_state() -> MainState:
+Input = "I want to do finishing works to my room"
+
+
+def _initialize_state(Input) -> MainState:
     return {
-        "task": "",
+        "task": Input,
         "node_name": "",
         "next_node": "",
         "plan": [],

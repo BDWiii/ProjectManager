@@ -1,1 +1,1 @@
-model= "llama3.1:8b-instruct-q4_K_M"
+model: "llama3.1:8b-instruct-q4_K_M"
