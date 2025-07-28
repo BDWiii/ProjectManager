@@ -158,7 +158,12 @@ These questions ensure you're not just getting a generic result—you’re getti
 - Docker for deployment
 
 ---
+## Over view:
 
+here is an image overview about how everything looks like.
+
+![overview](images/overview.png)
+---
 ## 📌 Final Words
 
 This project is more than a tech demo—it’s a framework for real-world intelligent automation.
