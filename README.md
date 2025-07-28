@@ -100,7 +100,7 @@ curl -X POST http://localhost:8000/run \
 
 ```json
 {
-  "response": "...full project report...",
+  "response": "...full project report, including phases, cost estimations, and potential parallel tasks...",
   "thread_id": "a-unique-id"
 }
 ```
