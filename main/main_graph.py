@@ -219,7 +219,7 @@ class RunProjectManager:
         snapshot = self.agent.get_state(self.config)
         state = dict(snapshot.values)
         state["task"] = Input
-        # state["next_node"] = ""
+        # state["next_node"] = "".....
         return self.agent.invoke(state, config=self.config)
 
     def get_current_state(self, thread_id: str):
