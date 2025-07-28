@@ -57,9 +57,9 @@ This system ships with:
 > Want to integrate this into your own platform? Just connect to the REST API endpoints and start feeding it project ideas.
 
 ---
-🚀 How to Use
-This system runs on a local LLM using Ollama.
+# 🚀 How to Use
 
+This system runs on a local LLM using Ollama.
 ✅ Using Ollama
 Make sure you have Ollama installed and running locally. Then, in config.yaml, set the model name you'd like to use—such as "llama3" or "mistral"—and you're ready to go.
 🔁 Using a different LLM
@@ -68,7 +68,7 @@ Head over to main/main_graph.py and replace the LLM client (currently set up wit
 The rest of the system will continue to work seamlessly.
 
 ---
-🔌 API Usage Example
+# 🔌 API Usage Example
 
 This project exposes a FastAPI interface. Here's how to interact with it:
 
@@ -76,32 +76,36 @@ This project exposes a FastAPI interface. Here's how to interact with it:
 Trigger the agent with a new or existing conversation.
 
 ➕ Start a New Thread
-
+'''''' bash
 curl -X POST http://localhost:8000/run \
   -H "Content-Type: application/json" \
   -d '{
     "task": "Design a 3-bedroom apartment interior",
     "thread_id": null
   }'
+''''''
+'''''' json
 Response:
 
 {
   "response": "...full project report...",
   "thread_id": "a-unique-id"
 }
+''''''
 🔁 Continue an Existing Thread
-
+'''''' bash
 curl -X POST http://localhost:8000/run \
   -H "Content-Type: application/json" \
   -d '{
     "task": "Add a kitchen renovation step",
     "thread_id": "your-existing-thread-id"
   }'
+''''''
 📥 GET /state/{thread_id}
 Get the full current internal state of a specific conversation.
-
+'''''' bash
 curl http://localhost:8000/state/your-thread-id
-
+''''''
 ---
 ## 🧪 Usage Examples
 
