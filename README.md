@@ -77,7 +77,7 @@ Trigger the agent with a new or existing conversation.
 
 ➕ Start a New Thread
 
-''' bash
+'''bash
 curl -X POST http://localhost:8000/run \
   -H "Content-Type: application/json" \
   -d '{
@@ -87,7 +87,7 @@ curl -X POST http://localhost:8000/run \
 '''
 
 Response:
-''' json
+'''json
 
 {
   "response": "...full project report...",
@@ -95,17 +95,17 @@ Response:
 }
 '''
 🔁 Continue an Existing Thread
-''' bash
+'''bash
 curl -X POST http://localhost:8000/run \
   -H "Content-Type: application/json" \
   -d '{
     "task": "Add a kitchen renovation step",
     "thread_id": "your-existing-thread-id"
   }'
-''''''
+'''
 📥 GET /state/{thread_id}
 Get the full current internal state of a specific conversation.
-''' bash
+'''bash
 curl http://localhost:8000/state/your-thread-id
 '''
 ---
