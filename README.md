@@ -68,7 +68,41 @@ Head over to main/main_graph.py and replace the LLM client (currently set up wit
 The rest of the system will continue to work seamlessly.
 
 ---
+🔌 API Usage Example
 
+This project exposes a FastAPI interface. Here's how to interact with it:
+
+📤 POST /run
+Trigger the agent with a new or existing conversation.
+
+➕ Start a New Thread
+
+curl -X POST http://localhost:8000/run \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task": "Design a 3-bedroom apartment interior",
+    "thread_id": null
+  }'
+Response:
+
+{
+  "response": "...full project report...",
+  "thread_id": "a-unique-id"
+}
+🔁 Continue an Existing Thread
+
+curl -X POST http://localhost:8000/run \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task": "Add a kitchen renovation step",
+    "thread_id": "your-existing-thread-id"
+  }'
+📥 GET /state/{thread_id}
+Get the full current internal state of a specific conversation.
+
+curl http://localhost:8000/state/your-thread-id
+
+---
 ## 🧪 Usage Examples
 
 ### ➕ Full Project Planning
