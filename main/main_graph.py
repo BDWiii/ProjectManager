@@ -101,7 +101,7 @@ class ProjectManager(StateGraph):
 
     def planner_agent_node(self, state: states.PlanState):
         planner_state = state["plan_state"]
-        planner_state["task"] = state["task"]
+        planner_state["task"] = f"{state.get('task', '')}\n\n{state.get('hitl', '')}"
         output = self.planner_agent.invoke(planner_state)
 
         return {
