@@ -63,9 +63,9 @@ class MainState(TypedDict):
     estimates: List[str]
     schedule: str
     retrieved_content: List[Dict]
-    chat: str
     hitl: str
-    report: str
+    # report: str
+    end: str
     plan_state: PlanState
     schedule_state: ScheduleState
     estimator_state: EstimatorState
@@ -85,7 +85,7 @@ def _initialize_state() -> MainState:
         "retrieved_content": [],
         "chat": "",
         "hitl": "",
-        "report": "",
+        "end": "",
         "plan_state": {
             "task": "",
             "plan": [],

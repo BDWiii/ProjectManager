@@ -145,7 +145,7 @@ class ProjectManager(StateGraph):
         return {
             "node_name": "report_agent",
             "report_state": report_state,
-            "report": report_state.get("report", ""),
+            "end": report_state.get("report", ""),
         }
 
     def market_study_agent_node(self, state: states.MarketStudyState):
@@ -157,6 +157,7 @@ class ProjectManager(StateGraph):
             "node_name": "market_study_agent",
             "market_study_state": output,
             "market_study": output.get("market_study", ""),
+            "end": output.get("market_study", ""),
             "retrieved_content": output.get("retrieved_content", []),
         }
 
@@ -164,13 +165,14 @@ class ProjectManager(StateGraph):
         messages = [
             SystemMessage(content=prompts.CHAT_PROMPT),
             HumanMessage(
-                content=f'{state.get("task", "")}\n\n{state.get("content", "")}\n\n{state.get('retrieved_content')}'
+                content=f'{state.get("task", "")}\n\n{state.get("end", "")}\n\n{state.get('retrieved_content')}'
             ),
         ]
         response = self.llm.invoke(messages)
 
         return {
-            "chat": response.content,
+            "node_name": "chat",
+            "end": response.content,
         }
 
     def decision(self, state: states.MainState):
