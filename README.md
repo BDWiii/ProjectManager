@@ -60,11 +60,16 @@ This system ships with:
 # 🚀 How to Use
 
 This system runs on a local LLM using Ollama.
+
 ✅ Using Ollama
+
 Make sure you have Ollama installed and running locally. Then, in config.yaml, set the model name you'd like to use—such as "llama3" or "mistral"—and you're ready to go.
+
 🔁 Using a different LLM
 If you're not using Ollama, you can easily modify the LLM invocation logic to suit your environment, in the main/main_graph.py.
+
 Head over to main/main_graph.py and replace the LLM client (currently set up with ChatOllama) with your preferred model or API (e.g., OpenAI, Claude, or vLLM).
+
 The rest of the system will continue to work seamlessly.
 
 ---
