@@ -76,24 +76,26 @@ This project exposes a FastAPI interface. Here's how to interact with it:
 Trigger the agent with a new or existing conversation.
 
 ➕ Start a New Thread
-'''''' bash
+
+''' bash
 curl -X POST http://localhost:8000/run \
   -H "Content-Type: application/json" \
   -d '{
     "task": "Design a 3-bedroom apartment interior",
     "thread_id": null
   }'
-''''''
-'''''' json
+'''
+
 Response:
+''' json
 
 {
   "response": "...full project report...",
   "thread_id": "a-unique-id"
 }
-''''''
+'''
 🔁 Continue an Existing Thread
-'''''' bash
+''' bash
 curl -X POST http://localhost:8000/run \
   -H "Content-Type: application/json" \
   -d '{
@@ -103,9 +105,9 @@ curl -X POST http://localhost:8000/run \
 ''''''
 📥 GET /state/{thread_id}
 Get the full current internal state of a specific conversation.
-'''''' bash
+''' bash
 curl http://localhost:8000/state/your-thread-id
-''''''
+'''
 ---
 ## 🧪 Usage Examples
 
