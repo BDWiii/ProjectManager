@@ -50,11 +50,10 @@ It’s your **project co-pilot** — asking the right questions, thinking throug
 
 This system ships with:
 
+- ✅ FastAPI backend with async calling.
 - ✅ Docker container support for instant deployment.
-- ✅ FastAPI backend with auto-generated OpenAPI docs.
-- ✅ YAML-based configuration for custom agent behaviors.
 
-> Want to integrate this into your own platform? Just connect to the REST API endpoints and start feeding it project ideas.
+> Want to integrate this into your own platform? Just connect to the REST API endpoints, host your LLM, and start feeding it project ideas.
 
 ---
 # 🚀 How to Use
