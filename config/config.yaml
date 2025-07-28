@@ -1,4 +1,4 @@
 model: "llama3.1:8b-instruct-q4_K_M"
 
 # this model is used within ChatOllma serving server,
-# if you are using vLLM change the serving/inference logic on main/main_graph.py, it's right under the ProjectManager class.
+# if you are using vLLM change the serving/inference logic on main/main_graph.py, it's right under the ProjectManager class
