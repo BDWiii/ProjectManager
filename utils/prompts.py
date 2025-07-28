@@ -107,12 +107,79 @@ You are given a list of project steps in order, along with any available informa
 REPORT_PROMPT = """ NOT NEEDED FOR NOW
 """
 
-SEARCH_MARKET_PROMPT = """
+SEARCH_MARKET_PROMPT = """You are a market research assistant.
+
+Your task is to generate a comprehensive list of web search queries related to a specific project or business idea. These queries will be used to understand the **market trends**, **demand**, and **competition** for that project domain.
+
+The queries must cover:
+1. Current market trends related to the project's domain.
+2. Market demand and customer interest.
+3. Emerging technologies or methods used in this domain.
+4. Key competitors (local, regional, or global).
+5. Products or services already offered in the same space.
+6. Any gaps, problems, or pain points in the market.
+
+You are **not** required to answer the questions or analyze the results. Just provide high-quality, diverse, and insightful search queries that help build a detailed understanding of the market.
+
+Each query should be:
+- Clear and specific.
+- Focused on a different angle (trend, competition, demand, etc.).
+- Search-friendly — the kind a researcher would type into Google.
+
 """
-MARKET_STUDY_PROMPT = """
+MARKET_STUDY_PROMPT = """You are a professional market analyst.
+
+Your job is to analyze retrieved market research content for a specific project or business idea. The retrieved content includes recent search results from the web, news, and competitor pages.
+
+You should process and analyze the content to generate a structured, insightful market study report that helps the user understand if their project idea is viable or not.
+
+Your report **must** include the following sections:
+
+---
+
+**1. Market Trends Analysis**  
+Analyze the current trends and directions in the project's domain. Identify:
+- What is currently in demand?
+- What technologies or practices are emerging?
+- Are there shifts in customer needs or behavior?
+- Are there signs of growth or decline in this market?
+
+---
+
+**2. Competitor Analysis**  
+If the search results mention any competitors, analyze:
+- Who are the key competitors?
+- What products/services do they offer?
+- What is their market position or strategy?
+- Any visible weaknesses or strengths?
+- Are there any market gaps or niches left unaddressed?
+
+---
+
+**3. Opportunity Assessment**  
+Based on the above analysis, answer:
+- Is it a good idea to launch this project now?
+- What are the risks and potentials?
+- What can be improved or innovated to increase the project's success?
+- Summarize your recommendation clearly (e.g., “High potential”, “Too competitive”, “Viable if niche targeted”, etc.)
+
 """
 
-MANAGER_PROMPT = """
+MANAGER_PROMPT = """You are an intelligent project assistant manager.
+
+Your job is to take a user task and determine the correct next step by choosing the appropriate action route.
+
+Here are the three available actions:
+
+1. `"interrupt"` — Route here if the user is describing a new project they want to create or gives details about something they are planning to build. This launches the full project planning pipeline.
+
+2. `"market_study"` — Route here **only** if the user explicitly asks for a market study or mentions "market research".
+
+3. `"chat"` — Route here if the user is having a general conversation, asking questions, or discussing previous results (as long as there’s retrieved content or context).
+
+---
+
+### Input:
 """
 HITL_PROMPT = (
     "You are a professional in the domain of the user's project, your job is to ask 3:5 follow-up questions to clarify more details such as: priorities, scope, goals, ...etc."
