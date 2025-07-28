@@ -67,6 +67,7 @@ class ProjectManager(StateGraph):
             lambda state: state.get("next_node", ""),
             {
                 "interrupt": "interrupt",
+                "planner_agent": "planner_agent",
                 "market_study_agent": "market_study_agent",
                 "chat": "chat",
             },
