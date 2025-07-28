@@ -72,6 +72,8 @@ The rest of the system will continue to work seamlessly.
 
 This project exposes a FastAPI interface. Here's how to interact with it:
 
+## >> Note: If your task input is vague or incomplete, the system will pause and ask clarifying questions before continuing. This Human-in-the-Loop step helps ensure accurate planning.
+
 ### 📤 POST `/run`
 
 Trigger the agent with a new or existing conversation.
