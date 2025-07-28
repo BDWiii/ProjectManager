@@ -12,6 +12,8 @@ from langgraph.types import Command, interrupt
 import yaml
 from langgraph.checkpoint.sqlite import SqliteSaver
 import sqlite3
+import uuid
+from agents.states import _initialize_state
 
 from tools.search_tools import search_web
 from agents import (
@@ -78,7 +80,11 @@ class ProjectManager(StateGraph):
         build_project_manager.add_edge("market_study_agent", END)
         build_project_manager.add_edge("report_agent", END)
 
-        self.project_manager = build_project_manager.compile()
+        conn = sqlite3.connect("checkpoints/checkpoints.sqlite")
+        memory = SqliteSaver(conn)
+        compile_kwargs = {"checkpointer": memory}
+
+        self.project_manager = build_project_manager.compile(**compile_kwargs)
 
     def main_agent_node(self, state: states.MainState):
         messages = [
@@ -176,6 +182,52 @@ class ProjectManager(StateGraph):
 
         return {"next_node": response.next_node}
 
-    def human_in_the_loop():
+    def human_in_the_loop(self, state: states.MainState):
+        messages = [
+            SystemMessage(content=prompts.HITL_PROMPT),
+            HumanMessage(content=state.get("task", "")),
+        ]
+        response = self.llm.invoke(messages)
 
-        return {}
+        return {
+            "node_name": "HITL",
+            "hitl": response.content,
+            "next_node": "planner_agent",
+        }
+
+
+class RunProjectManager:
+    def __init__(self):
+        self.agent = ProjectManager()
+        self.threads = []
+        self.thread_id = None
+        self.config = {}
+    
+    def new_thread(self, Input: str):
+        self.thread_id = str(uuid.uuid4())
+        self.config = {"configurable": {"thread_id": self.thread_id}}
+        state = _initialize_state(Input)
+        return self.agent.main_agent.invoke(state, self.config)
+    
+    def existing_thread(self, Input: str):
+        if not self.thread_id:
+            raise ValueError("No existing thread_id to resume")
+        snapshot = self.agent.main_agent.get_state(self.config)
+        state = dict(snapshot.values)
+        state["task"] = Input
+        state["next_node"] = ""
+        return self.agent.main_agent.invoke(state, config=self.config)
+        
+    def get_current_state(self, thread_id: str):
+        config = {"configurable": {"thread_id": thread_id}}
+        return self.agent.main_agent.get_state(config)
+    
+
+# test on new thread
+if __name__ == "__main__":
+    Input= "I want to do finishing works to my room"
+    runner = RunProjectManager()
+    response = runner.new_thread(Input)
+    print("response:", response)
+
+##########

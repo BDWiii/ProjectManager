@@ -9,15 +9,6 @@ class MainRouter(BaseModel):
     next_node: Literal["interrupt", "market_study_agent", "chat"]
 
 
-# class Plan(BaseModel):
-#     goal: str
-#     phases: List[Phase]
-
-
-# class SearchVal(BaseModel):
-#     next_node: str
-
-
 class Query(BaseModel):
     query: List[str]
     max_results: int = 3
@@ -66,15 +57,66 @@ class MarketStudyState(TypedDict):
 
 class MainState(TypedDict):
     task: str
+    node_name: str
     next_node: str
     plan: List[str]
     estimates: List[str]
     schedule: str
     retrieved_content: List[Dict]
     chat: str
+    hitl: str
     report: str
     plan_state: PlanState
     schedule_state: ScheduleState
     estimator_state: EstimatorState
     report_state: ReportState
     market_study_state: MarketStudyState
+
+
+# ==================== Initialization ====================
+def _initialize_state() -> MainState:
+    return {
+        "task": "",
+        "node_name": "",
+        "next_node": "",
+        "plan": [],
+        "estimates": [],
+        "schedule": "",
+        "retrieved_content": [],
+        "chat": "",
+        "hitl": "",
+        "report": "",
+        "plan_state": {
+            "task": "",
+            "plan": [],
+            "node_name": "",
+            "next_node": "",
+            "retrieved_content": [],
+        },
+        "schedule_state": {
+            "task": "",
+            "node_name": "",
+            "steps": [],
+            "schedule": "",
+        },
+        "estimator_state": {
+            "task": "",
+            "steps": [],
+            "node_name": "",
+            "next_node": "",
+            "retrieved_content": [],
+            "estimates": [],
+        },
+        "report_state": {
+            "task": "",
+            "node_name": "",
+            "report": "",
+        },
+        "market_study_state": {
+            "task": "",
+            "node_name": "",
+            "next_node": "",
+            "retrieved_content": [],
+            "market_study": "",
+        },
+    }
