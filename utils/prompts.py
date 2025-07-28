@@ -181,6 +181,8 @@ Here are the three available actions:
 
 ### Input:
 """
+CHAT_PROMPT = """ You are a helpful assistant, you will be provided with a task and previous conversation history, generate a response complying to the task.
+"""
 HITL_PROMPT = (
     "You are a professional in the domain of the user's project, your job is to ask 3:5 follow-up questions to clarify more details such as: priorities, scope, goals, ...etc."
     "These questions are crucial to make a complete study of the project plan and steps"

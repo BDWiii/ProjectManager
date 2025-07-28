@@ -64,7 +64,7 @@ class ProjectManager(StateGraph):
 
         build_project_manager.add_conditional_edges(
             "main_agent",
-            self.decision,
+            lambda state: state.get("next_node", "interrupt"),
             {
                 "interrupt": "interrupt",
                 "market_study_agent": "market_study_agent",
@@ -80,7 +80,9 @@ class ProjectManager(StateGraph):
         build_project_manager.add_edge("market_study_agent", END)
         build_project_manager.add_edge("report_agent", END)
 
-        conn = sqlite3.connect("checkpoints/checkpoints.sqlite")
+        conn = sqlite3.connect(
+            "checkpoints/checkpoints.sqlite", check_same_thread=False
+        )
         memory = SqliteSaver(conn)
         compile_kwargs = {"checkpointer": memory}
 
@@ -99,7 +101,7 @@ class ProjectManager(StateGraph):
             "next_node": response.next_node,
         }
 
-    def planner_agent_node(self, state: states.PlanState):
+    def planner_agent_node(self, state: states.MainState):
         planner_state = state["plan_state"]
         planner_state["task"] = f"{state.get('task', '')}\n\n{state.get('hitl', '')}"
         output = self.planner_agent.invoke(planner_state)
@@ -111,31 +113,29 @@ class ProjectManager(StateGraph):
             "retrieved_content": output.get("retrieved_content", []),
         }
 
-    def estimator_agent_node(self, state: states.EstimatorState):
+    def estimator_agent_node(self, state: states.MainState):
         estimator_state = state["estimator_state"]
         estimator_state["task"] = state["task"]
         estimator_state["steps"] = state["plan"]
         output = self.estimator_agent.invoke(estimator_state)
 
         return {
-            "node_name": "estimator_agent",
             "estimator_state": output,
             "estimates": output.get("estimates", []),
         }
 
-    def schedule_agent_node(self, state: states.ScheduleState):
+    def schedule_agent_node(self, state: states.MainState):
         schedule_state = state["schedule_state"]
         schedule_state["task"] = state["task"]
         schedule_state["steps"] = state["plan"]
         output = self.schedule_agent.invoke(schedule_state)
 
         return {
-            "node_name": "schedule_agent",
             "schedule_state": output,
             "schedule": output.get("schedule", ""),
         }
 
-    def report_agent_node(self, state: states.ReportState):
+    def report_agent_node(self, state: states.MainState):
         report_state = state["report_state"]
         report_state["task"] = state["task"]
         report_state["report"] = (
@@ -148,7 +148,7 @@ class ProjectManager(StateGraph):
             "end": report_state.get("report", ""),
         }
 
-    def market_study_agent_node(self, state: states.MarketStudyState):
+    def market_study_agent_node(self, state: states.MainState):
         market_study_state = state["market_study_state"]
         market_study_state["task"] = state["task"]
         output = self.market_study_agent.invoke(market_study_state)
@@ -191,11 +191,13 @@ class ProjectManager(StateGraph):
         ]
         response = self.llm.invoke(messages)
 
-        return {
-            "node_name": "HITL",
-            "hitl": response.content,
-            "next_node": "planner_agent",
-        }
+        return interrupt(
+            {
+                "node_name": "HITL",
+                "hitl": response.content,
+                "next_node": "planner_agent",
+            }
+        )
 
 
 class RunProjectManager:
