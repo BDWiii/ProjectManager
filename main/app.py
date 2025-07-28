@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional
 from main.main_graph import RunProjectManager
 
 app = FastAPI()
-runner = RunProjectManager
+runner = RunProjectManager()
 
 
 class TaskRequest(BaseModel):
@@ -30,10 +30,23 @@ async def run_agent(request: TaskRequest):
     else:
         result = runner.new_thread(input_text)
 
-    return {
-        "response": result["end"],
-        "thread_id": runner.thread_id,
-    }
+    if "__interrupt__" in result:
+        interrupt = result["__interrupt__"][0].value
+        if interrupt.get("node_name") == "HITL":
+            return {
+                "response": interrupt.get("hitl", ""),
+                "thread_id": runner.thread_id,
+            }
+
+    # CASE 2 — Final output
+    elif "end" in result:
+        return {
+            "response": result["end"],
+            "thread_id": runner.thread_id,
+        }
+
+    # CASE 3 — Unexpected state
+    raise HTTPException(status_code=500, detail="Unexpected agent result structure.")
 
 
 @app.get("/state/{thread_id}")
