@@ -80,3 +80,4 @@ class EstimatorAgent:
             "estimates": [response.content],
             "retrieved_content": state.get("retrieved_content", []),
         }
+#
