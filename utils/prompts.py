@@ -91,14 +91,14 @@ You are given a list of project steps in order, along with any available informa
 **Schedule:**
 
 📅 Day 1 or Week 1:
-- Step A (Duration: 3 days)
-- Step B (Duration: 2 days) – can run in parallel with Step A
+- Step A (Duration: )
+- Step B (Duration: ) – can run in parallel with Step A
 
 📅 Day 2 or Week 2:
-- Step C (Duration: 5 days) – starts after Step A finishes
+- Step C (Duration: ) – starts after Step A finishes
 
 📅 Day 3 or Week 3:
-- Step D (Duration: 4 days)
+- Step D (Duration: )
 
 ...
 
