@@ -246,7 +246,7 @@ if __name__ == "__main__":
     print("Agent paused for human input:")
     print(response)
 
-    # Simulate Human-in-the-loop (extract the question)
+    # Simulate Human-in-the-loop
     followup_question = response.get("task")
     thread_id = runner.thread_id
     human_answer = "Full finishing works, open budget, and the flat is completely empty, i want modern style, and want to enjoy life."

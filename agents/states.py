@@ -64,8 +64,7 @@ class MainState(TypedDict):
     estimates: str
     schedule: str
     retrieved_content: List[Dict]
-    # hitl: str
-    # report: str
+    hitl: str
     end: str
     plan_state: PlanState
     schedule_state: ScheduleState
