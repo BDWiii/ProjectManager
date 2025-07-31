@@ -30,23 +30,19 @@ async def run_agent(request: TaskRequest):
     else:
         result = runner.new_thread(input_text)
 
-    if "__interrupt__" in result:
-        interrupt = result["__interrupt__"][0].value
-        if interrupt.get("node_name") == "HITL":
-            return {
-                "response": interrupt.get("hitl", ""),
-                "thread_id": runner.thread_id,
-            }
-
-    # CASE 2 — Final output
-    elif "end" in result:
+    status = result["status"]
+    if status == "paused":
         return {
-            "response": result["end"],
-            "thread_id": runner.thread_id,
+            "response": result.get("query", "Human input required"),
+            "thread_id": result["thread_id"],
         }
-
-    # CASE 3 — Unexpected state
-    raise HTTPException(status_code=500, detail="Unexpected agent result structure.")
+    elif status in {"running", "completed"}:
+        return {
+            "response": result.get("output", "No output available"),
+            "thread_id": result["thread_id"],
+        }
+    else:
+        raise HTTPException(status_code=500, detail="Unknown status returned by agent.")
 
 
 @app.get("/state/{thread_id}")

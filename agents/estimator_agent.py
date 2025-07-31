@@ -77,7 +77,9 @@ class EstimatorAgent:
             "task": state.get("task", ""),
             "node_name": "estimator",
             "next_node": state.get("next_node", ""),
-            "estimates": [response.content],
+            "estimates": response.content,
             "retrieved_content": state.get("retrieved_content", []),
         }
+
+
 #
