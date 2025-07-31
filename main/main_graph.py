@@ -60,13 +60,13 @@ class ProjectManager(StateGraph):
             "market_study_agent", self.market_study_agent_node
         )
         build_project_manager.add_node("chat", self.chat_node)
-        build_project_manager.add_node("interrupt", self.human_in_the_loop)
+        # build_project_manager.add_node("interrupt", self.human_in_the_loop)
 
         build_project_manager.add_conditional_edges(
             "main_agent",
             lambda state: state.get("next_node", ""),
             {
-                "interrupt": "interrupt",
+                # "interrupt": "interrupt",
                 "planner_agent": "planner_agent",
                 "market_study_agent": "market_study_agent",
                 "chat": "chat",
@@ -74,7 +74,7 @@ class ProjectManager(StateGraph):
         )
 
         build_project_manager.set_entry_point("main_agent")
-        build_project_manager.add_edge("interrupt", "planner_agent")
+        # build_project_manager.add_edge("interrupt", "planner_agent")
         build_project_manager.add_edge("planner_agent", "estimator_agent")
         build_project_manager.add_edge("planner_agent", "schedule_agent")
         build_project_manager.add_edge("estimator_agent", "report_agent")
@@ -185,21 +185,6 @@ class ProjectManager(StateGraph):
 
         return {"next_node": response.next_node}
 
-    def human_in_the_loop(self, state: states.MainState):
-        messages = [
-            SystemMessage(content=prompts.HITL_PROMPT),
-            HumanMessage(content=state.get("task", "")),
-        ]
-        response = self.llm.invoke(messages)
-
-        return interrupt(
-            {
-                "node_name": "HITL",
-                "hitl": response.content,
-                "next_node": "planner_agent",
-            }
-        )
-
 
 class RunProjectManager:
     def __init__(self):
@@ -212,16 +197,39 @@ class RunProjectManager:
         self.thread_id = str(uuid.uuid4())
         self.config = {"configurable": {"thread_id": self.thread_id}}
         state = _initialize_state(Input)
-        return self.agent.invoke(state, self.config)
+        result = self.agent.invoke(state, self.config)
+        if result.get("pause"):
+            return {
+                "status": "paused",
+                "thread_id": self.thread_id,
+                "query": result.payload.get("query", "Human input required"),
+            }
+
+        return {"status": "running", "thread_id": self.thread_id, "output": result}
 
     def existing_thread(self, Input: str):
         if not self.thread_id:
             raise ValueError("No existing thread_id to resume")
         snapshot = self.agent.get_state(self.config)
         state = dict(snapshot.values)
-        state["task"] = Input
-        # state["next_node"] = "".....
-        return self.agent.invoke(state, config=self.config)
+        original_task = state.get("task", "")
+        updated = f"{original_task}\n\n{Input}"
+        state["task"] = updated
+
+        command = Command(resume={"task": state["task"]})
+        result = self.agent.invoke(command, config=self.config)
+        if isinstance(result, Command):
+            return {
+                "status": "paused",
+                "thread_id": self.thread_id,
+                "query": result.payload.get("query", "Human input requested"),
+            }
+
+        return {
+            "status": "completed",
+            "thread_id": self.thread_id,
+            "output": result,
+        }
 
     def get_current_state(self, thread_id: str):
         config = {"configurable": {"thread_id": thread_id}}
@@ -230,9 +238,19 @@ class RunProjectManager:
 
 # test on new thread
 if __name__ == "__main__":
-    Input = "I want to do finishing works to my room"
+    user_input = "I want to do finishing works to my room"
     runner = RunProjectManager()
-    response = runner.new_thread(Input)
-    print("response:", response)
+    print("Starting new thread")
+    response = runner.new_thread(user_input)
+    print("Agent paused for human input:")
+    print(response)
 
-##########
+    # Simulate Human-in-the-loop (extract the question)
+    followup_question = response.get("task")
+    thread_id = runner.thread_id
+    human_answer = "Full finishing works, open budget, and the flat is completely empty, i want modern style, and want to enjoy life."
+
+    print("Resuming with human answer")
+    response = runner.existing_thread(human_answer)
+    print("Agent continued execution:")
+    print(response)

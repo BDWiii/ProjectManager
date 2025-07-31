@@ -8,7 +8,7 @@ from langchain_core.messages import (
     AnyMessage,
 )
 from langgraph.graph import StateGraph, END
-from langgraph.types import Command
+from langgraph.types import Command, interrupt
 from langgraph.checkpoint.sqlite import SqliteSaver
 import sqlite3
 
@@ -36,12 +36,23 @@ class PlannerAgent:
 
         build_search.add_node("search", self.search_node)
         build_search.add_node("planner", self.planner_node)
+        build_search.add_node("interrupt", self.human_in_the_loop)
 
-        build_search.set_entry_point("search")
+        build_search.set_entry_point("interrupt")
+        build_search.add_edge("interrupt", "search")
         build_search.add_edge("search", "planner")
         build_search.add_edge("planner", END)
 
         self.planner_agent = build_search.compile()
+
+    def human_in_the_loop(self, state: states.PlanState):
+        messages = [
+            SystemMessage(content=prompts.HITL_PROMPT),
+            HumanMessage(content=state.get("task", "")),
+        ]
+        question_to_human = self.llm.invoke(messages)
+
+        return interrupt({"query": question_to_human.content})
 
     def search_node(self, state: states.PlanState):
         messages = [

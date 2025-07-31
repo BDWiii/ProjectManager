@@ -169,15 +169,14 @@ MANAGER_PROMPT = """You are an intelligent project assistant manager.
 
 Your job is to take a user task and determine the correct next step by choosing the appropriate action route.
 
-Here are the four available actions:
+Here are the three available actions:
 
-1. `"interrupt"` — Route here if the user is describing a new project they want to create or gives details about something they are planning to build, but the user provided very little details about what he wants to build, for example the user only provided one or two lines that's very little information.
+1. `"planner_agent"` — Route here if the user is describing a new project they want to create or gives details about something they are planning to build.
+here the full project plan and cost estimations and schedules will be generated.
 
-2. `"planner_agent"` - Route there when the user wants to make a project, and provided a lot of information (suffice for making a project plan), here the full project plan and cost estimations and schedules will be generated.
+2. `"market_study"` — Route here **only** if the user explicitly asks for a market study or mentions "market research" in the task.
 
-3. `"market_study"` — Route here **only** if the user explicitly asks for a market study or mentions "market research" in the task.
-
-4. `"chat"` — Route here if the user is having a general conversation, asking questions, or discussing previous results (as long as there’s retrieved content or context).
+3. `"chat"` — Route here if the user is having a general conversation, asking questions, or discussing previous results (as long as there’s retrieved content or context).
 
 ---
 

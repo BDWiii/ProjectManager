@@ -19,6 +19,7 @@ class Query(BaseModel):
 
 class PlanState(TypedDict):
     task: str
+    pause: bool
     plan: List[str]
     node_name: str
     next_node: str
