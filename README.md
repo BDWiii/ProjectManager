@@ -162,7 +162,7 @@ These questions ensure you're not just getting a generic result—you’re getti
 
 here is an image overview about how everything looks like.
 
-![overview](images/overview.png)
+![overview](images/overview_2.png)
 ---
 ## 📌 Final Words
 
