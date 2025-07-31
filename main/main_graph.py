@@ -215,6 +215,7 @@ class RunProjectManager:
         original_task = state.get("task", "")
         updated = f"{original_task}\n\n{Input}"
         state["task"] = updated
+        state["plan_state"]["task"] = updated
 
         command = Command(resume={"task": state["task"]})
         result = self.agent.invoke(command, config=self.config)

@@ -82,6 +82,7 @@ You are given a list of project steps in order, along with any available informa
 4. Generate a **clear, readable project schedule**, broken down by time periods (e.g. Week 1, Week 2...).
 5. Provide the **total estimated project duration** (in weeks or days).
 6. Make sure the steps are **well-structured and understandable**.
+7. the **Schedule** time stamps should comply to the steps time stamps, so if the step is taking a day or a week, the schedule should be the same day or week depending on the step duration.
 
 ### Output Format:
 
@@ -89,14 +90,14 @@ You are given a list of project steps in order, along with any available informa
 
 **Schedule:**
 
-📅 Week 1:
+📅 Day 1 or Week 1:
 - Step A (Duration: 3 days)
 - Step B (Duration: 2 days) – can run in parallel with Step A
 
-📅 Week 2:
+📅 Day 2 or Week 2:
 - Step C (Duration: 5 days) – starts after Step A finishes
 
-📅 Week 3:
+📅 Day 3 or Week 3:
 - Step D (Duration: 4 days)
 
 ...
