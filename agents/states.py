@@ -6,7 +6,7 @@ import operator
 
 
 class MainRouter(BaseModel):
-    next_node: Literal["interrupt", "planner_agent", "market_study_agent", "chat"]
+    next_node: Literal["planner_agent", "market_study_agent", "chat"]
 
 
 class Query(BaseModel):
