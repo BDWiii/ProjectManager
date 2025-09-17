@@ -1,16 +1,8 @@
+import asyncio
 import logging
-from langchain_ollama import ChatOllama
-from langchain_core.messages import (
-    HumanMessage,
-    SystemMessage,
-    AIMessage,
-    ChatMessage,
-    AnyMessage,
-)
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langgraph.graph import StateGraph, END
 from langgraph.types import Command
-from langgraph.checkpoint.sqlite import SqliteSaver
-import sqlite3
 
 from tools.search_tools import search_web
 from agents import states
@@ -40,23 +32,31 @@ class MarketStudyAgent:
 
         self.market_study_agent = build_market_study.compile()
 
-    def search_node(self, state: states.MarketStudyState):
+    async def search_node(self, state: states.MarketStudyState):
         messages = [
             SystemMessage(content=prompts.SEARCH_MARKET_PROMPT),
             HumanMessage(content=state.get("task", "")),
         ]
-        search_queries = self.llm.with_structured_output(states.Query).invoke(messages)
+        search_queries = await self.llm.with_structured_output(states.Query).ainvoke(
+            messages
+        )
 
         search_results = []
-        for q in search_queries.query:
-            response = self.web_search_function.invoke(
-                q, max_results=search_queries.max_results
+
+        tasks = [
+            self.web_search_function.ainvoke(
+                {"query": q, "max_results": search_queries.max_results}
             )
+            for q in search_queries.query
+        ]
+        responses = await asyncio.gather(*tasks)
+
+        for response in responses:
             for item in response:
                 search_results.append(
                     {
-                        "url": item["url"],
-                        "content": item["content"],
+                        "url": item.get("url", ""),
+                        "content": item.get("content", ""),
                     }
                 )
 
@@ -66,12 +66,12 @@ class MarketStudyAgent:
             "task": state.get("task", ""),
         }
 
-    def market_study_node(self, state: states.MarketStudyState):
+    async def market_study_node(self, state: states.MarketStudyState):
         messages = [
             SystemMessage(content=prompts.MARKET_STUDY_PROMPT),
             HumanMessage(content=state.get("task", "")),
         ]
-        response = self.llm.invoke(messages)
+        response = await self.llm.ainvoke(messages)
 
         return {
             "node_name": "market_studier",

@@ -1,16 +1,8 @@
+import asyncio
 import logging
-from langchain_ollama import ChatOllama
-from langchain_core.messages import (
-    HumanMessage,
-    SystemMessage,
-    AIMessage,
-    ChatMessage,
-    AnyMessage,
-)
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langgraph.graph import StateGraph, END
 from langgraph.types import Command, interrupt
-from langgraph.checkpoint.sqlite import SqliteSaver
-import sqlite3
 
 from tools.search_tools import search_web
 from agents import states
@@ -45,32 +37,40 @@ class PlannerAgent:
 
         self.planner_agent = build_search.compile()
 
-    def human_in_the_loop(self, state: states.PlanState):
+    async def human_in_the_loop(self, state: states.PlanState):
         messages = [
             SystemMessage(content=prompts.HITL_PROMPT),
             HumanMessage(content=state.get("task", "")),
         ]
-        question_to_human = self.llm.invoke(messages)
+        question_to_human = await self.llm.ainvoke(messages)
 
         return interrupt({"query": question_to_human.content})
 
-    def search_node(self, state: states.PlanState):
+    async def search_node(self, state: states.PlanState):
         messages = [
             SystemMessage(content=prompts.SEARCH_PROMPT),
             HumanMessage(content=state.get("task", "")),
         ]
-        search_queries = self.llm.with_structured_output(states.Query).invoke(messages)
+        search_queries = await self.llm.with_structured_output(states.Query).ainvoke(
+            messages
+        )
 
         search_results = []
-        for q in search_queries.query:
-            response = self.web_search_function.invoke(
-                q, max_results=search_queries.max_results
+
+        tasks = [
+            self.web_search_function.ainvoke(
+                {"query": q, "max_results": search_queries.max_results}
             )
+            for q in search_queries.query
+        ]
+        responses = await asyncio.gather(*tasks)
+
+        for response in responses:
             for item in response:
                 search_results.append(
                     {
-                        "url": item["url"],
-                        "content": item["content"],
+                        "url": item.get("url", ""),
+                        "content": item.get("content", ""),
                     }
                 )
 
@@ -80,7 +80,7 @@ class PlannerAgent:
             "task": state.get("task", ""),
         }
 
-    def planner_node(self, state: states.PlanState):
+    async def planner_node(self, state: states.PlanState):
         formatted_retrieved_content = []
         for item in state["retrieved_content"]:
             formatted = f'url: {item["url"]}\ncontent: {item["content"]}'
@@ -94,7 +94,7 @@ class PlannerAgent:
                 content=f'{state.get("task", "")}\n\n{formatted_content_string}'
             ),
         ]
-        response = self.llm.invoke(messages)
+        response = await self.llm.ainvoke(messages)
 
         return {
             "node_name": "planner",

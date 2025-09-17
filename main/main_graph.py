@@ -1,31 +1,26 @@
+import asyncio
 import logging
+import uuid
+
 from langchain_ollama import ChatOllama
-from langchain_core.messages import (
-    HumanMessage,
-    SystemMessage,
-    AIMessage,
-    ChatMessage,
-    AnyMessage,
-)
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langgraph.graph import StateGraph, END
 from langgraph.types import Command, interrupt
 import yaml
-from langgraph.checkpoint.sqlite import SqliteSaver
-import sqlite3
-import uuid
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+import aiosqlite
+
+
 from agents.states import _initialize_state
-
 from tools.search_tools import search_web
-from agents import (
-    states,
-    estimator_agent,
-    planner_agent,
-    report_agent,
-    schedule_agent,
-    market_study_agent,
-)
-
+from agents import states
+from agents.planner_agent import PlannerAgent
+from agents.estimator_agent import EstimatorAgent
+from agents.schedule_agent import ScheduleAgent
+from agents.report_agent import ReportAgent
+from agents.market_study_agent import MarketStudyAgent
 from utils import prompts
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -38,29 +33,155 @@ with open("config/config.yaml", "r") as f:
 
 
 class ProjectManager(StateGraph):
-    def __init__(self):
-        self.llm = ChatOllama(model=config["model"])
+    """
+    Main Project Manager Agent-Orchestrator
+    Factory pattern implementation to handle Async agents
+    while maintaining resources at scale
+    """
 
-        self.planner_agent = planner_agent.PlannerAgent(self.llm).planner_agent
-        self.estimator_agent = estimator_agent.EstimatorAgent(self.llm).estimator_agent
-        self.schedule_agent = schedule_agent.ScheduleAgent(self.llm).schedule_agent
-        self.report_agent = report_agent.ReportAgent(self.llm).report_agent
-        self.market_study_agent = market_study_agent.MarketStudyAgent(
-            self.llm
-        ).market_study_agent
+    def __init__(
+        self,
+        llm,
+        planner_agent,
+        estimator_agent,
+        schedule_agent,
+        report_agent,
+        market_study_agent,
+        # chatbot,
+        conn,
+        compiled_graph,
+    ):
+        self.llm = llm
+        self.planner_agent = planner_agent
+        self.estimator_agent = estimator_agent
+        self.schedule_agent = schedule_agent
+        self.report_agent = report_agent
+        self.market_study_agent = market_study_agent
+        # self.chatbot = chatbot
+        self.conn = conn
+        self.project_manager = compiled_graph
+
+    @classmethod
+    async def build(cls):
+        llm = ChatOllama(model=config["model"])
+
+        async def main_agent_node(state: states.MainState):
+            messages = [
+                SystemMessage(content=prompts.MANAGER_PROMPT),
+                HumanMessage(content=state.get("task", "")),
+            ]
+            response = await llm.with_structured_output(states.MainRouter).ainvoke(
+                messages
+            )
+
+            return {
+                "task": state.get("task", ""),
+                "node_name": "main_agent",
+                "next_node": response.next_node,
+            }
+
+        async def planner_agent_node(state: states.MainState):
+            planner_state = state["plan_state"]
+            planner_state["task"] = (
+                f"{state.get('task', '')}\n\n{state.get('hitl', '')}"
+            )
+            output = await planner_agent.ainvoke(planner_state)
+
+            return {
+                "node_name": "planner_agent",
+                "plan_state": output,
+                "plan": output.get("plan", []),
+                "retrieved_content": output.get("retrieved_content", []),
+            }
+
+        async def estimator_agent_node(state: states.MainState):
+            estimator_state = state["estimator_state"]
+            estimator_state["task"] = state["task"]
+            estimator_state["steps"] = state["plan"]
+            output = await estimator_agent.ainvoke(estimator_state)
+
+            return {
+                "estimator_state": output,
+                "estimates": output.get("estimates", []),
+            }
+
+        async def schedule_agent_node(state: states.MainState):
+            schedule_state = state["schedule_state"]
+            schedule_state["task"] = state["task"]
+            schedule_state["steps"] = state["plan"]
+            output = await schedule_agent.ainvoke(schedule_state)
+
+            return {
+                "schedule_state": output,
+                "schedule": output.get("schedule", ""),
+            }
+
+        def report_agent_node(state: states.MainState):
+            report_state = state["report_state"]
+            report_state["task"] = state["task"]
+            report_state["report"] = (
+                f"{state.get("schedule", "")}\n\n Price estimations\n\n {state.get('estimates', [])}"
+            )
+
+            return {
+                "node_name": "report_agent",
+                "report_state": report_state,
+                "end": report_state.get("report", ""),
+            }
+
+        async def market_study_agent_node(state: states.MainState):
+            market_study_state = state["market_study_state"]
+            market_study_state["task"] = state["task"]
+            output = await market_study_agent.ainvoke(market_study_state)
+
+            return {
+                "node_name": "market_study_agent",
+                "market_study_state": output,
+                "market_study": output.get("market_study", ""),
+                "end": output.get("market_study", ""),
+                "retrieved_content": output.get("retrieved_content", []),
+            }
+
+        async def chat_node(state: states.MainState):
+            messages = [
+                SystemMessage(content=prompts.CHAT_PROMPT),
+                HumanMessage(
+                    content=f'{state.get("task", "")}\n\n{state.get("end", "")}\n\n{state.get('retrieved_content')}'
+                ),
+            ]
+            response = await llm.ainvoke(messages)
+
+            return {
+                "node_name": "chat",
+                "end": response.content,
+            }
+
+        async def decision(state: states.MainState):
+            messages = [
+                SystemMessage(content=prompts.DECISION_PROMPT),
+                HumanMessage(content=state.get("task", "")),
+            ]
+            response = await llm.with_structured_output(states.MainRouter).ainvoke(
+                messages
+            )
+
+            return {"next_node": response.next_node}
+
+        planner_agent = PlannerAgent(llm).planner_agent
+        estimator_agent = EstimatorAgent(llm).estimator_agent
+        schedule_agent = ScheduleAgent(llm).schedule_agent
+        report_agent = ReportAgent(llm).report_agent
+        market_study_agent = MarketStudyAgent(llm).market_study_agent
 
         build_project_manager = StateGraph(states.MainState)
 
-        build_project_manager.add_node("main_agent", self.main_agent_node)
-        build_project_manager.add_node("planner_agent", self.planner_agent_node)
-        build_project_manager.add_node("estimator_agent", self.estimator_agent_node)
-        build_project_manager.add_node("schedule_agent", self.schedule_agent_node)
-        build_project_manager.add_node("report_agent", self.report_agent_node)
-        build_project_manager.add_node(
-            "market_study_agent", self.market_study_agent_node
-        )
-        build_project_manager.add_node("chat", self.chat_node)
-        # build_project_manager.add_node("interrupt", self.human_in_the_loop)
+        build_project_manager.add_node("main_agent", main_agent_node)
+        build_project_manager.add_node("planner_agent", planner_agent_node)
+        build_project_manager.add_node("estimator_agent", estimator_agent_node)
+        build_project_manager.add_node("schedule_agent", schedule_agent_node)
+        build_project_manager.add_node("report_agent", report_agent_node)
+        build_project_manager.add_node("market_study_agent", market_study_agent_node)
+        build_project_manager.add_node("chat", chat_node)
 
         build_project_manager.add_conditional_edges(
             "main_agent",
@@ -74,130 +195,49 @@ class ProjectManager(StateGraph):
         )
 
         build_project_manager.set_entry_point("main_agent")
-        # build_project_manager.add_edge("interrupt", "planner_agent")
         build_project_manager.add_edge("planner_agent", "estimator_agent")
         build_project_manager.add_edge("planner_agent", "schedule_agent")
         build_project_manager.add_edge("estimator_agent", "report_agent")
         build_project_manager.add_edge("market_study_agent", END)
         build_project_manager.add_edge("report_agent", END)
 
-        conn = sqlite3.connect(
+        conn = await aiosqlite.connect(
             "checkpoints/checkpoints.sqlite", check_same_thread=False
         )
-        memory = SqliteSaver(conn)
+        memory = AsyncSqliteSaver(conn)
         compile_kwargs = {"checkpointer": memory}
 
-        self.project_manager = build_project_manager.compile(**compile_kwargs)
+        compiled_graph = build_project_manager.compile(**compile_kwargs)
 
-    def main_agent_node(self, state: states.MainState):
-        messages = [
-            SystemMessage(content=prompts.MANAGER_PROMPT),
-            HumanMessage(content=state.get("task", "")),
-        ]
-        response = self.llm.with_structured_output(states.MainRouter).invoke(messages)
-
-        return {
-            "task": state.get("task", ""),
-            "node_name": "main_agent",
-            "next_node": response.next_node,
-        }
-
-    def planner_agent_node(self, state: states.MainState):
-        planner_state = state["plan_state"]
-        planner_state["task"] = f"{state.get('task', '')}\n\n{state.get('hitl', '')}"
-        output = self.planner_agent.invoke(planner_state)
-
-        return {
-            "node_name": "planner_agent",
-            "plan_state": output,
-            "plan": output.get("plan", []),
-            "retrieved_content": output.get("retrieved_content", []),
-        }
-
-    def estimator_agent_node(self, state: states.MainState):
-        estimator_state = state["estimator_state"]
-        estimator_state["task"] = state["task"]
-        estimator_state["steps"] = state["plan"]
-        output = self.estimator_agent.invoke(estimator_state)
-
-        return {
-            "estimator_state": output,
-            "estimates": output.get("estimates", []),
-        }
-
-    def schedule_agent_node(self, state: states.MainState):
-        schedule_state = state["schedule_state"]
-        schedule_state["task"] = state["task"]
-        schedule_state["steps"] = state["plan"]
-        output = self.schedule_agent.invoke(schedule_state)
-
-        return {
-            "schedule_state": output,
-            "schedule": output.get("schedule", ""),
-        }
-
-    def report_agent_node(self, state: states.MainState):
-        report_state = state["report_state"]
-        report_state["task"] = state["task"]
-        report_state["report"] = (
-            f"{state.get("schedule", "")}\n\n Price estimations\n\n {state.get('estimates', [])}"
+        return cls(
+            llm,
+            planner_agent,
+            estimator_agent,
+            schedule_agent,
+            report_agent,
+            market_study_agent,
+            # chatbot,
+            conn,
+            compiled_graph,
         )
 
-        return {
-            "node_name": "report_agent",
-            "report_state": report_state,
-            "end": report_state.get("report", ""),
-        }
-
-    def market_study_agent_node(self, state: states.MainState):
-        market_study_state = state["market_study_state"]
-        market_study_state["task"] = state["task"]
-        output = self.market_study_agent.invoke(market_study_state)
-
-        return {
-            "node_name": "market_study_agent",
-            "market_study_state": output,
-            "market_study": output.get("market_study", ""),
-            "end": output.get("market_study", ""),
-            "retrieved_content": output.get("retrieved_content", []),
-        }
-
-    def chat_node(self, state: states.MainState):
-        messages = [
-            SystemMessage(content=prompts.CHAT_PROMPT),
-            HumanMessage(
-                content=f'{state.get("task", "")}\n\n{state.get("end", "")}\n\n{state.get('retrieved_content')}'
-            ),
-        ]
-        response = self.llm.invoke(messages)
-
-        return {
-            "node_name": "chat",
-            "end": response.content,
-        }
-
-    def decision(self, state: states.MainState):
-        messages = [
-            SystemMessage(content=prompts.DECISION_PROMPT),
-            HumanMessage(content=state.get("task", "")),
-        ]
-        response = self.llm.with_structured_output(states.MainRouter).invoke(messages)
-
-        return {"next_node": response.next_node}
+    async def close(self):
+        if hasattr(self, "conn"):
+            await self.conn.close()
 
 
 class RunProjectManager:
-    def __init__(self):
-        self.agent = ProjectManager().project_manager
+    def __init__(self, agent: ProjectManager):
+        self.agent = agent.project_manager
         self.threads = []
         self.thread_id = None
         self.config = {}
 
-    def new_thread(self, Input: str):
+    async def new_thread(self, Input: str):
         self.thread_id = str(uuid.uuid4())
         self.config = {"configurable": {"thread_id": self.thread_id}}
         state = _initialize_state(Input)
-        result = self.agent.invoke(state, self.config)
+        result = await self.agent.ainvoke(state, self.config)
         if result.get("pause"):
             return {
                 "status": "paused",
@@ -207,10 +247,10 @@ class RunProjectManager:
 
         return {"status": "running", "thread_id": self.thread_id, "output": result}
 
-    def existing_thread(self, Input: str):
+    async def existing_thread(self, Input: str):
         if not self.thread_id:
             raise ValueError("No existing thread_id to resume")
-        snapshot = self.agent.get_state(self.config)
+        snapshot = await self.agent.aget_state(self.config)
         state = dict(snapshot.values)
         original_task = state.get("task", "")
         updated = f"{original_task}\n\n{Input}"
@@ -218,7 +258,7 @@ class RunProjectManager:
         state["plan_state"]["task"] = updated
 
         command = Command(resume={"task": state["task"]})
-        result = self.agent.invoke(command, config=self.config)
+        result = await self.agent.ainvoke(command, config=self.config)
         if isinstance(result, Command):
             return {
                 "status": "paused",
@@ -232,26 +272,32 @@ class RunProjectManager:
             "output": result,
         }
 
-    def get_current_state(self, thread_id: str):
+    async def get_current_state(self, thread_id: str):
         config = {"configurable": {"thread_id": thread_id}}
-        return self.agent.get_state(config)
+        return await self.agent.aget_state(config)
 
 
 # test on new thread
 if __name__ == "__main__":
-    user_input = "I want to do finishing works to my room"
-    runner = RunProjectManager()
-    print("Starting new thread")
-    response = runner.new_thread(user_input)
-    print("Agent paused for human input:")
-    print(response)
 
-    # Simulate Human-in-the-loop
-    followup_question = response.get("task")
-    thread_id = runner.thread_id
-    human_answer = "Full finishing works, open budget, and the flat is completely empty, i want modern style, and want to enjoy life."
+    # Simulating HITL (two steps async calling)
+    async def main():
+        user_input = "I want to do finishing works to my room"
 
-    print("Resuming with human answer")
-    response = runner.existing_thread(human_answer)
-    print("Agent continued execution:")
-    print(response)
+        agent = await ProjectManager.build()
+        runner = RunProjectManager(agent)
+        print("Starting new thread")
+
+        response = await runner.new_thread(user_input)
+        print("Agent paused for human input:")
+        print(response)
+
+        # Simulate Human-in-the-loop
+        human_answer = "Full finishing works, open budget, and the flat is completely empty, i want modern style, and want to enjoy life."
+        response = await runner.existing_thread(human_answer)
+        print("Agent continued execution:")
+        print(response)
+
+        await agent.close()
+
+    asyncio.run(main())

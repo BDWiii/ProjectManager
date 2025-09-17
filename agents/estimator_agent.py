@@ -1,16 +1,7 @@
+import asyncio
 import logging
-from langchain_ollama import ChatOllama
-from langchain_core.messages import (
-    HumanMessage,
-    SystemMessage,
-    AIMessage,
-    ChatMessage,
-    AnyMessage,
-)
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langgraph.graph import StateGraph, END
-from langgraph.types import Command
-from langgraph.checkpoint.sqlite import SqliteSaver
-import sqlite3
 
 from tools.search_tools import search_web
 from agents import states
@@ -40,23 +31,31 @@ class EstimatorAgent:
 
         self.estimator_agent = build_estimator.compile()
 
-    def search_node(self, state: states.EstimatorState):
+    async def search_node(self, state: states.EstimatorState):
         messages = [
             SystemMessage(content=prompts.COST_SEARCH_PROMPT),
             HumanMessage(content=state.get("task", "")),
         ]
-        search_queries = self.llm.with_structured_output(states.Query).invoke(messages)
+        search_queries = await self.llm.with_structured_output(states.Query).ainvoke(
+            messages
+        )
 
         search_results = []
-        for q in search_queries.query:
-            response = self.web_search_function.invoke(
-                q, max_results=search_queries.max_results
+
+        tasks = [
+            self.web_search_function.ainvoke(
+                {"query": q, "max_results": search_queries.max_results}
             )
+            for q in search_queries.query
+        ]
+        responses = await asyncio.gather(*tasks)
+
+        for response in responses:
             for item in response:
                 search_results.append(
                     {
-                        "url": item["url"],
-                        "content": item["content"],
+                        "url": item.get("url", ""),
+                        "content": item.get("content", ""),
                     }
                 )
 
@@ -66,12 +65,12 @@ class EstimatorAgent:
             "task": state.get("task", ""),
         }
 
-    def estimator_node(self, state: states.EstimatorState):
+    async def estimator_node(self, state: states.EstimatorState):
         messages = [
             SystemMessage(content=prompts.ESTIMATOR_PROMPT),
             HumanMessage(content=state.get("task", "")),
         ]
-        response = self.llm.invoke(messages)
+        response = await self.llm.ainvoke(messages)
 
         return {
             "task": state.get("task", ""),

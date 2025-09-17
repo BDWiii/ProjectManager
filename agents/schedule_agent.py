@@ -1,18 +1,10 @@
+import asyncio
 import logging
-from langchain_ollama import ChatOllama
-from langchain_core.messages import (
-    HumanMessage,
-    SystemMessage,
-    AIMessage,
-    ChatMessage,
-    AnyMessage,
-)
+
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langgraph.graph import StateGraph, END
 from langgraph.types import Command
-from langgraph.checkpoint.sqlite import SqliteSaver
-import sqlite3
 
-from tools.search_tools import search_web
 from agents import states
 from utils import prompts
 
@@ -37,7 +29,7 @@ class ScheduleAgent:
 
         self.schedule_agent = build_schedule.compile()
 
-    def schedule_node(self, state: states.ScheduleState):
+    async def schedule_node(self, state: states.ScheduleState):
         messages = [
             SystemMessage(content=prompts.SCHEDULER_PROMPT),
             HumanMessage(
@@ -45,7 +37,7 @@ class ScheduleAgent:
             ),
         ]
 
-        response = self.llm.invoke(messages)
+        response = await self.llm.ainvoke(messages)
 
         return {
             "task": state.get("task", ""),
