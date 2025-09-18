@@ -102,7 +102,7 @@ async def get_state(thread_id: str):
 
 @app.get("/health")
 async def health():
-    return {"status": "✅ ✅ ✅"}
+    return {"status": "✅ ✅ ✅ !!"}
 
 
 if __name__ == "__main__":
