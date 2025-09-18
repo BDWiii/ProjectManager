@@ -85,7 +85,7 @@ async def run_agent(request: TaskRequest):
         raise HTTPException(status_code=500, detail="Unknown status returned by agent.")
 
 
-@app.get("/state/{thread_id}")
+@app.get("/project_manager/state/{thread_id}")
 async def get_state(thread_id: str):
     """Get current state of the project manager"""
 

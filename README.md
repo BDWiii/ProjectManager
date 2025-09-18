@@ -1,6 +1,6 @@
-# 🚀 LangGraph Multi-Agent Project Manager
+# Multi-Agent Project Manager
 
-Welcome to the **next generation of intelligent project automation** — a powerful agentic system that turns vague ideas into detailed, actionable plans. Whether you're building a flat, launching a startup, or mapping out a complex project, this system transforms raw intent into structured reports—with cost, time, and market insights—**in seconds**.
+Welcome to the **next generation of intelligent project automation** — a powerful agentic system that turns vague ideas into detailed, actionable plans. Whether you're building a flat, launching a startup, or mapping out a complex project, this system transforms raw intent into structured reports—with cost, time, and market insights.
 
 This isn’t just a planner.  
 It’s your **project co-pilot** — asking the right questions, thinking through every step, and delivering clear results with the precision of an expert team.
@@ -69,18 +69,22 @@ If you're not using Ollama, you can easily modify the LLM invocation logic to su
 
 Head over to main/main_graph.py and replace the LLM client (currently set up with ChatOllama) with your preferred model or API (e.g., OpenAI, Claude, or vLLM).
 
+Also you will need a Tavily API_KEY in your .env file so the search functionality works.
+
 The rest of the system will continue to work seamlessly.
 
 ---
 ## 🔌 API Usage Example
 
-This project exposes a FastAPI interface. Here's how to interact with it:
+This project exposes a fully async FastAPI interface. Here's how to interact with it:
 
 ## >> Note: 
 
 If your task input is vague or incomplete, the system will pause and ask clarifying questions before continuing. This Human-in-the-Loop step helps ensure accurate planning.
 
-### 📤 POST `/run`
+
+
+### 📤 POST `/project_manager/chat/`
 
 Trigger the agent with a new or existing conversation.
 
@@ -117,7 +121,7 @@ curl -X POST http://localhost:8000/run \
 
 ---
 
-### 📥 GET `/state/{thread_id}`
+### 📥 GET `/project_manager/state/{thread_id}`
 
 Get the full current internal state of a specific conversation.
 
