@@ -123,10 +123,18 @@ class ProjectManager(StateGraph):
                 f"{state.get("schedule", "")}\n\n Price estimations\n\n {state.get('estimates', [])}"
             )
 
+            # Update history
+            new_history = state.get("history", [])
+            new_history.append({"role": "user", "content": state["task"]})
+            new_history.append(
+                {"role": "assistant", "content": report_state.get("report", "")}
+            )
+
             return {
                 "node_name": "report_agent",
                 "report_state": report_state,
                 "end": report_state.get("report", ""),
+                "history": new_history,
             }
 
         async def market_study_agent_node(state: states.MainState):
@@ -134,26 +142,50 @@ class ProjectManager(StateGraph):
             market_study_state["task"] = state["task"]
             output = await market_study_agent.ainvoke(market_study_state)
 
+            # update history
+            new_history = state.get("history", [])
+            new_history.append({"role": "user", "content": state["task"]})
+            new_history.append(
+                {"role": "assistant", "content": output.get("market_study", "")}
+            )
+
             return {
                 "node_name": "market_study_agent",
                 "market_study_state": output,
                 "market_study": output.get("market_study", ""),
                 "end": output.get("market_study", ""),
                 "retrieved_content": output.get("retrieved_content", []),
+                "history": new_history,
             }
 
         async def chat_node(state: states.MainState):
+            # Get last 5 messages
+            history = state.get("history", [])[-5:]
+
             messages = [
                 SystemMessage(content=prompts.CHAT_PROMPT),
-                HumanMessage(
-                    content=f'{state.get("task", "")}\n\n{state.get("end", "")}\n\n{state.get('retrieved_content')}'
-                ),
+                *[
+                    (
+                        HumanMessage(content=m["content"])
+                        if m["role"] == "user"
+                        else AIMessage(content=m["content"])
+                    )
+                    for m in history
+                ],
+                HumanMessage(content=f'{state.get("task", "")}'),
             ]
             response = await llm.ainvoke(messages)
+
+            # Update history
+            new_history = state.get("history", [])
+            new_history.append({"role": "user", "content": state["task"]})
+            new_history.append({"role": "assistant", "content": response.content})
 
             return {
                 "node_name": "chat",
                 "end": response.content,
+                "task": state.get("task", ""),
+                "history": new_history,
             }
 
         async def decision(state: states.MainState):
